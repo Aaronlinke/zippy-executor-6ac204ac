@@ -106,11 +106,22 @@ function classify(main: string): string {
   return "Programm";
 }
 
+function isJunk(path: string) {
+  const base = path.split("/").pop() ?? "";
+  return (
+    path.startsWith("__MACOSX/") ||
+    path.includes("/__MACOSX/") ||
+    base === ".DS_Store" ||
+    base.startsWith("._") ||
+    base === "Thumbs.db"
+  );
+}
+
 export async function runZip(file: File): Promise<RunResult> {
   const zip = await JSZip.loadAsync(file);
   const entries: { name: string; entry: JSZip.JSZipObject }[] = [];
   zip.forEach((path, entry) => {
-    if (!entry.dir) entries.push({ name: path, entry });
+    if (!entry.dir && !isJunk(path)) entries.push({ name: path, entry });
   });
   if (!entries.length) return { kind: "empty" };
 
@@ -120,8 +131,8 @@ export async function runZip(file: File): Promise<RunResult> {
   const mainEntry = entries.find((e) => e.name === main)!;
   const lower = main.toLowerCase();
 
-  // Render real HTML
-  if (lower.endsWith(".html") || lower.endsWith(".htm") || lower.endsWith(".php")) {
+  // Echtes HTML direkt rendern (PHP nicht — sonst wäre Quellcode sichtbar)
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) {
     const blobs = new Map<string, string>();
     await Promise.all(
       entries.map(async (e) => {
@@ -133,7 +144,15 @@ export async function runZip(file: File): Promise<RunResult> {
     );
     let html = await mainEntry.entry.async("string");
     html = inlineHtml(html, main, blobs);
-    return { kind: "html", srcDoc: html, mainName: main };
+    return {
+      kind: "html",
+      srcDoc: html,
+      mainName: main,
+      revoke: () => {
+        for (const url of blobs.values()) URL.revokeObjectURL(url);
+        blobs.clear();
+      },
+    };
   }
 
   // For everything else (scripts, apk, exe, jar…): collect context for AI simulation
