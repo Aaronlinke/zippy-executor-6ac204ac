@@ -137,7 +137,7 @@ function Index() {
           title="Vorschau"
           srcDoc={view.srcDoc}
           className="h-full w-full flex-1 border-0 bg-white"
-          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"
         />
       </div>
     );
