@@ -100,6 +100,7 @@ function classify(main: string): string {
   if (l.endsWith(".exe") || l.endsWith(".msi")) return "Windows-Programm";
   if (l.endsWith(".dmg")) return "macOS-Programm";
   if (l.endsWith(".jar")) return "Java-Programm";
+  if (l.endsWith(".php")) return "PHP-Webanwendung";
   if (l.endsWith(".deb")) return "Linux-Paket";
   if (l.endsWith(".py")) return "Python-Skript";
   if (l.endsWith(".js")) return "JavaScript-Skript";
