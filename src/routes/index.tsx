@@ -20,7 +20,24 @@ type View =
 function Index() {
   const [view, setView] = useState<View>({ kind: "idle" });
   const [drag, setDrag] = useState(false);
+  const [shown, setShown] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const target = view.kind === "loading" ? view.progress : 0;
+
+  // Fortschritt weich hochlaufen lassen, damit die Leiste bei langen
+  // KI-Stufen nicht minutenlang still steht.
+  useEffect(() => {
+    if (view.kind !== "loading") {
+      setShown(0);
+      return;
+    }
+    setShown((s) => Math.max(s, target));
+    const id = window.setInterval(() => {
+      setShown((s) => (s >= target + 12 ? s : Math.min(s + 0.4, target + 12)));
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [view.kind, target]);
 
   const handleFile = useCallback(async (file: File) => {
     setView({ kind: "loading", label: "Entpacken…", progress: 5 });
@@ -120,7 +137,7 @@ function Index() {
           title="Vorschau"
           srcDoc={view.srcDoc}
           className="h-full w-full flex-1 border-0 bg-white"
-          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-same-origin"
+          sandbox="allow-scripts allow-forms allow-modals allow-popups allow-downloads"
         />
       </div>
     );
@@ -170,11 +187,11 @@ function Index() {
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300 transition-all duration-500 ease-out"
-                style={{ width: `${Math.max(5, Math.min(100, view.progress))}%` }}
+                style={{ width: `${Math.max(5, Math.min(99, shown))}%` }}
               />
             </div>
             <div className="mt-2 text-right text-xs tabular-nums text-slate-500">
-              {Math.round(view.progress)}%
+              {Math.round(Math.min(99, shown))}%
             </div>
           </div>
         )}
