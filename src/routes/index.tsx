@@ -185,7 +185,9 @@ function Index() {
         onClick={() => inputRef.current?.click()}
         className={[
           "flex w-full max-w-2xl cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 text-center transition",
-          drag ? "border-cyan-400 bg-cyan-500/10" : "border-slate-700 bg-slate-900/50 hover:border-cyan-500/60 hover:bg-slate-900",
+          drag
+            ? "border-cyan-400 bg-cyan-500/10"
+            : "border-slate-700 bg-slate-900/50 hover:border-cyan-500/60 hover:bg-slate-900",
           view.kind === "loading" ? "pointer-events-none" : "",
         ].join(" ")}
       >

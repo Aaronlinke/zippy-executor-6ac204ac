@@ -15,21 +15,75 @@ const HTML_NAMES = ["index.html", "index.htm", "index.php"];
 const SCRIPT_NAMES = ["main.py", "app.py", "app.js", "index.js", "main.js"];
 const BINARY_EXTS = [".apk", ".exe", ".jar", ".msi", ".dmg", ".ipa", ".deb", ".so", ".dll", ".bin"];
 const TEXT_EXTS = [
-  "txt", "md", "rst", "json", "yml", "yaml", "toml", "ini", "cfg", "conf",
-  "py", "js", "ts", "tsx", "jsx", "java", "kt", "kts", "go", "rs", "c", "cpp", "h", "hpp",
-  "cs", "rb", "php", "swift", "m", "sh", "bat", "ps1", "css", "scss", "html", "htm", "xml",
-  "gradle", "properties", "lock", "env", "gitignore", "dockerfile",
+  "txt",
+  "md",
+  "rst",
+  "json",
+  "yml",
+  "yaml",
+  "toml",
+  "ini",
+  "cfg",
+  "conf",
+  "py",
+  "js",
+  "ts",
+  "tsx",
+  "jsx",
+  "java",
+  "kt",
+  "kts",
+  "go",
+  "rs",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "rb",
+  "php",
+  "swift",
+  "m",
+  "sh",
+  "bat",
+  "ps1",
+  "css",
+  "scss",
+  "html",
+  "htm",
+  "xml",
+  "gradle",
+  "properties",
+  "lock",
+  "env",
+  "gitignore",
+  "dockerfile",
 ];
 
 const MIME: Record<string, string> = {
-  html: "text/html", htm: "text/html", css: "text/css",
-  js: "application/javascript", mjs: "application/javascript",
-  json: "application/json", svg: "image/svg+xml",
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-  gif: "image/gif", webp: "image/webp", ico: "image/x-icon",
-  woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf",
-  mp3: "audio/mpeg", wav: "audio/wav", mp4: "video/mp4", webm: "video/webm",
-  txt: "text/plain", xml: "application/xml",
+  html: "text/html",
+  htm: "text/html",
+  css: "text/css",
+  js: "application/javascript",
+  mjs: "application/javascript",
+  json: "application/json",
+  svg: "image/svg+xml",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  ico: "image/x-icon",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  ttf: "font/ttf",
+  otf: "font/otf",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  txt: "text/plain",
+  xml: "application/xml",
 };
 
 function ext(name: string) {
@@ -44,7 +98,13 @@ function mimeFor(name: string) {
 function isTextFile(name: string) {
   const e = ext(name);
   const base = name.split("/").pop()!.toLowerCase();
-  return TEXT_EXTS.includes(e) || base === "readme" || base === "license" || base === "makefile" || base === "dockerfile";
+  return (
+    TEXT_EXTS.includes(e) ||
+    base === "readme" ||
+    base === "license" ||
+    base === "makefile" ||
+    base === "dockerfile"
+  );
 }
 
 function pickMain(files: string[]): string | null {
@@ -59,12 +119,16 @@ function pickMain(files: string[]): string | null {
   for (const cat of cats) {
     const matches = lower.filter(([, n]) => cat(n));
     if (matches.length) {
-      matches.sort((a, b) => a[0].split("/").length - b[0].split("/").length || a[0].length - b[0].length);
+      matches.sort(
+        (a, b) => a[0].split("/").length - b[0].split("/").length || a[0].length - b[0].length,
+      );
       return matches[0][0];
     }
   }
   if (!files.length) return null;
-  return [...files].sort((a, b) => a.split("/").length - b.split("/").length || a.length - b.length)[0];
+  return [...files].sort(
+    (a, b) => a.split("/").length - b.split("/").length || a.length - b.length,
+  )[0];
 }
 
 function inlineHtml(html: string, base: string, blobs: Map<string, string>): string {
@@ -196,13 +260,9 @@ export async function runZip(file: File): Promise<RunResult> {
   };
 }
 
-export function offlineSimulation(
-  mainName: string,
-  fileKind: string,
-  fileList: string[],
-): string {
+export function offlineSimulation(mainName: string, fileKind: string, fileList: string[]): string {
   const esc = (s: string) =>
-    s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+    s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
   const filename = esc(mainName.split("/").pop() ?? "app");
   const kind = esc(fileKind);
   const fl = fileList

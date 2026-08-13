@@ -23,10 +23,7 @@ export function createLovableAiGatewayRunIdFetch(initialRunId?: string) {
 }
 
 /** Responses-API-Provider für die ✓-OpenAI-Modelle des Lovable AI Gateways. */
-export function createLovableResponsesProvider(
-  lovableApiKey: string,
-  initialRunId?: string,
-) {
+export function createLovableResponsesProvider(lovableApiKey: string, initialRunId?: string) {
   const runIdFetch = createLovableAiGatewayRunIdFetch(initialRunId);
   const provider = createOpenAI({
     baseURL: "https://ai.gateway.lovable.dev/v1",

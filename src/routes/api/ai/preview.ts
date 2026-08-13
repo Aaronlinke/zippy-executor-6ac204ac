@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { streamText } from "ai";
-import {
-  createLovableResponsesProvider,
-  getLovableAiGatewayRunId,
-} from "@/lib/ai-gateway.server";
+import { createLovableResponsesProvider, getLovableAiGatewayRunId } from "@/lib/ai-gateway.server";
 
 type Body = {
   mainName?: string;
@@ -111,7 +108,10 @@ ${API_CATALOG}
 Antwort: NUR vollständiges HTML ab <!doctype html>.`;
 
 function stripFences(s: string) {
-  return s.replace(/^```(?:html)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  return s
+    .replace(/^```(?:html)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
 }
 function isHtml(s: string) {
   return /<html|<!doctype/i.test(s);
