@@ -122,7 +122,13 @@ function Index() {
     if (f) handleFile(f);
   };
 
-  const reset = () => setView({ kind: "idle" });
+  const reset = () => {
+    revokeRef.current?.();
+    revokeRef.current = null;
+    if (inputRef.current) inputRef.current.value = "";
+    setShown(0);
+    setView({ kind: "idle" });
+  };
 
   if (view.kind === "result" && view.srcDoc) {
     const name = view.result.kind === "empty" ? "" : view.result.mainName;
