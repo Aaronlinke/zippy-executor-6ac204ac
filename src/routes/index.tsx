@@ -40,10 +40,14 @@ function Index() {
   }, [view.kind, target]);
 
   const handleFile = useCallback(async (file: File) => {
+    revokeRef.current?.();
+    revokeRef.current = null;
+    setShown(0);
     setView({ kind: "loading", label: "Entpacken…", progress: 5 });
     try {
       const result = await runZip(file);
       if (result.kind === "html") {
+        revokeRef.current = result.revoke;
         setView({ kind: "result", result, srcDoc: result.srcDoc });
       } else if (result.kind === "simulate") {
         setView({ kind: "loading", label: "Starte KI…", progress: 10 });
