@@ -201,12 +201,15 @@ export function offlineSimulation(
   fileKind: string,
   fileList: string[],
 ): string {
-  const filename = mainName.split("/").pop()!;
+  const esc = (s: string) =>
+    s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+  const filename = esc(mainName.split("/").pop() ?? "app");
+  const kind = esc(fileKind);
   const fl = fileList
     .slice(0, 40)
-    .map((f) => `<li>${f.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!))}</li>`)
+    .map((f) => `<li>${esc(f)}</li>`)
     .join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title>
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${filename}</title>
 <style>
   body{margin:0;font-family:ui-sans-serif,system-ui;background:#0f172a;color:#e2e8f0;padding:32px;line-height:1.6}
   .card{max-width:680px;margin:0 auto;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px}
