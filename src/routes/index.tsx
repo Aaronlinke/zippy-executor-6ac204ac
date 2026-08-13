@@ -22,6 +22,10 @@ function Index() {
   const [drag, setDrag] = useState(false);
   const [shown, setShown] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const revokeRef = useRef<(() => void) | null>(null);
+
+  // Blob-URLs der entpackten Dateien freigeben, wenn die Seite verlassen wird
+  useEffect(() => () => revokeRef.current?.(), []);
 
   const target = view.kind === "loading" ? view.progress : 0;
 
@@ -40,10 +44,14 @@ function Index() {
   }, [view.kind, target]);
 
   const handleFile = useCallback(async (file: File) => {
+    revokeRef.current?.();
+    revokeRef.current = null;
+    setShown(0);
     setView({ kind: "loading", label: "Entpacken…", progress: 5 });
     try {
       const result = await runZip(file);
       if (result.kind === "html") {
+        revokeRef.current = result.revoke;
         setView({ kind: "result", result, srcDoc: result.srcDoc });
       } else if (result.kind === "simulate") {
         setView({ kind: "loading", label: "Starte KI…", progress: 10 });
@@ -114,7 +122,13 @@ function Index() {
     if (f) handleFile(f);
   };
 
-  const reset = () => setView({ kind: "idle" });
+  const reset = () => {
+    revokeRef.current?.();
+    revokeRef.current = null;
+    if (inputRef.current) inputRef.current.value = "";
+    setShown(0);
+    setView({ kind: "idle" });
+  };
 
   if (view.kind === "result" && view.srcDoc) {
     const name = view.result.kind === "empty" ? "" : view.result.mainName;
@@ -171,7 +185,9 @@ function Index() {
         onClick={() => inputRef.current?.click()}
         className={[
           "flex w-full max-w-2xl cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 text-center transition",
-          drag ? "border-cyan-400 bg-cyan-500/10" : "border-slate-700 bg-slate-900/50 hover:border-cyan-500/60 hover:bg-slate-900",
+          drag
+            ? "border-cyan-400 bg-cyan-500/10"
+            : "border-slate-700 bg-slate-900/50 hover:border-cyan-500/60 hover:bg-slate-900",
           view.kind === "loading" ? "pointer-events-none" : "",
         ].join(" ")}
       >

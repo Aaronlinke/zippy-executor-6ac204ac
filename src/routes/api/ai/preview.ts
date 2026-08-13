@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { streamText } from "ai";
+import { createLovableResponsesProvider, getLovableAiGatewayRunId } from "@/lib/ai-gateway.server";
 
 type Body = {
   mainName?: string;
@@ -108,7 +108,10 @@ ${API_CATALOG}
 Antwort: NUR vollständiges HTML ab <!doctype html>.`;
 
 function stripFences(s: string) {
-  return s.replace(/^```(?:html)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  return s
+    .replace(/^```(?:html)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
 }
 function isHtml(s: string) {
   return /<html|<!doctype/i.test(s);
@@ -148,18 +151,36 @@ Baue jetzt die voll funktionsfähige Web-Version.`;
               controller.enqueue(encoder.encode(JSON.stringify(obj) + "\n"));
 
             try {
-              const gateway = createLovableAiGatewayProvider(key);
-              const model = gateway("google/gemini-3-flash-preview");
+              const gateway = createLovableResponsesProvider(
+                key,
+                getLovableAiGatewayRunId(request),
+              );
+              const model = gateway.responses("openai/gpt-5.6-sol");
+
+              // Jede Stufe streamt (Reasoning-Modell, lange Laufzeiten),
+              // der Text wird serverseitig gesammelt.
+              const gen = async (system: string, prompt: string) => {
+                const result = streamText({
+                  model,
+                  system,
+                  prompt,
+                  abortSignal: request.signal,
+                  providerOptions: {
+                    openai: {
+                      forceReasoning: true,
+                      reasoningEffort: "low",
+                      reasoningSummary: "auto",
+                      store: false,
+                      include: ["reasoning.encrypted_content"],
+                    },
+                  },
+                });
+                return await result.text;
+              };
 
               // ALPHA
               send({ type: "stage", id: "alpha", label: "Alpha · Erstentwurf", progress: 15 });
-              const alpha = await generateText({
-                model,
-                system: ALPHA_SYSTEM,
-                prompt: buildPrompt,
-                maxOutputTokens: 16000,
-              });
-              let html = stripFences(alpha.text);
+              let html = stripFences(await gen(ALPHA_SYSTEM, buildPrompt));
               if (!isHtml(html)) {
                 send({ type: "error", message: "alpha_bad_html" });
                 controller.close();
@@ -170,34 +191,29 @@ Baue jetzt die voll funktionsfähige Web-Version.`;
               // BETA
               try {
                 send({ type: "stage", id: "beta", label: "Beta · Code-Review", progress: 50 });
-                const beta = await generateText({
-                  model,
-                  system: BETA_SYSTEM,
-                  prompt: `Programm: ${mainName} (${fileKind ?? "unbekannt"})\n\nApp:\n${html.slice(0, 30000)}`,
-                  maxOutputTokens: 2500,
-                });
-                const critique = beta.text;
+                const critique = await gen(
+                  BETA_SYSTEM,
+                  `Programm: ${mainName} (${fileKind ?? "unbekannt"})\n\nApp:\n${html.slice(0, 30000)}`,
+                );
 
                 // GAMMA
                 send({ type: "stage", id: "gamma", label: "Gamma · Verbesserung", progress: 70 });
-                const gamma = await generateText({
-                  model,
-                  system: GAMMA_SYSTEM,
-                  prompt: `Programm: ${mainName}\n\nAktuelle App:\n${html}\n\nBeta-Mängel:\n${critique}\n\nLiefere die verbesserte HTML-Datei.`,
-                  maxOutputTokens: 16000,
-                });
-                const gammaHtml = stripFences(gamma.text);
+                const gammaHtml = stripFences(
+                  await gen(
+                    GAMMA_SYSTEM,
+                    `Programm: ${mainName}\n\nAktuelle App:\n${html}\n\nBeta-Mängel:\n${critique}\n\nLiefere die verbesserte HTML-Datei.`,
+                  ),
+                );
                 if (isHtml(gammaHtml)) html = gammaHtml;
 
                 // DELTA — Endprüfung
                 send({ type: "stage", id: "delta", label: "Delta · Endprüfung", progress: 88 });
-                const delta = await generateText({
-                  model,
-                  system: DELTA_SYSTEM,
-                  prompt: `Programm: ${mainName}\n\nGamma-Version:\n${html}\n\nFühre die Final-QA-Checkliste aus und liefere die 100%-Version.`,
-                  maxOutputTokens: 16000,
-                });
-                const deltaHtml = stripFences(delta.text);
+                const deltaHtml = stripFences(
+                  await gen(
+                    DELTA_SYSTEM,
+                    `Programm: ${mainName}\n\nGamma-Version:\n${html}\n\nFühre die Final-QA-Checkliste aus und liefere die 100%-Version.`,
+                  ),
+                );
                 if (isHtml(deltaHtml)) html = deltaHtml;
               } catch {
                 // Verbesserungs-Passes optional — Alpha bleibt

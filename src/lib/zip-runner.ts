@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
 export type RunResult =
-  | { kind: "html"; srcDoc: string; mainName: string }
+  | { kind: "html"; srcDoc: string; mainName: string; revoke: () => void }
   | {
       kind: "simulate";
       mainName: string;
@@ -15,21 +15,75 @@ const HTML_NAMES = ["index.html", "index.htm", "index.php"];
 const SCRIPT_NAMES = ["main.py", "app.py", "app.js", "index.js", "main.js"];
 const BINARY_EXTS = [".apk", ".exe", ".jar", ".msi", ".dmg", ".ipa", ".deb", ".so", ".dll", ".bin"];
 const TEXT_EXTS = [
-  "txt", "md", "rst", "json", "yml", "yaml", "toml", "ini", "cfg", "conf",
-  "py", "js", "ts", "tsx", "jsx", "java", "kt", "kts", "go", "rs", "c", "cpp", "h", "hpp",
-  "cs", "rb", "php", "swift", "m", "sh", "bat", "ps1", "css", "scss", "html", "htm", "xml",
-  "gradle", "properties", "lock", "env", "gitignore", "dockerfile",
+  "txt",
+  "md",
+  "rst",
+  "json",
+  "yml",
+  "yaml",
+  "toml",
+  "ini",
+  "cfg",
+  "conf",
+  "py",
+  "js",
+  "ts",
+  "tsx",
+  "jsx",
+  "java",
+  "kt",
+  "kts",
+  "go",
+  "rs",
+  "c",
+  "cpp",
+  "h",
+  "hpp",
+  "cs",
+  "rb",
+  "php",
+  "swift",
+  "m",
+  "sh",
+  "bat",
+  "ps1",
+  "css",
+  "scss",
+  "html",
+  "htm",
+  "xml",
+  "gradle",
+  "properties",
+  "lock",
+  "env",
+  "gitignore",
+  "dockerfile",
 ];
 
 const MIME: Record<string, string> = {
-  html: "text/html", htm: "text/html", css: "text/css",
-  js: "application/javascript", mjs: "application/javascript",
-  json: "application/json", svg: "image/svg+xml",
-  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg",
-  gif: "image/gif", webp: "image/webp", ico: "image/x-icon",
-  woff: "font/woff", woff2: "font/woff2", ttf: "font/ttf", otf: "font/otf",
-  mp3: "audio/mpeg", wav: "audio/wav", mp4: "video/mp4", webm: "video/webm",
-  txt: "text/plain", xml: "application/xml",
+  html: "text/html",
+  htm: "text/html",
+  css: "text/css",
+  js: "application/javascript",
+  mjs: "application/javascript",
+  json: "application/json",
+  svg: "image/svg+xml",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  ico: "image/x-icon",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  ttf: "font/ttf",
+  otf: "font/otf",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  txt: "text/plain",
+  xml: "application/xml",
 };
 
 function ext(name: string) {
@@ -44,7 +98,13 @@ function mimeFor(name: string) {
 function isTextFile(name: string) {
   const e = ext(name);
   const base = name.split("/").pop()!.toLowerCase();
-  return TEXT_EXTS.includes(e) || base === "readme" || base === "license" || base === "makefile" || base === "dockerfile";
+  return (
+    TEXT_EXTS.includes(e) ||
+    base === "readme" ||
+    base === "license" ||
+    base === "makefile" ||
+    base === "dockerfile"
+  );
 }
 
 function pickMain(files: string[]): string | null {
@@ -59,12 +119,16 @@ function pickMain(files: string[]): string | null {
   for (const cat of cats) {
     const matches = lower.filter(([, n]) => cat(n));
     if (matches.length) {
-      matches.sort((a, b) => a[0].split("/").length - b[0].split("/").length || a[0].length - b[0].length);
+      matches.sort(
+        (a, b) => a[0].split("/").length - b[0].split("/").length || a[0].length - b[0].length,
+      );
       return matches[0][0];
     }
   }
   if (!files.length) return null;
-  return [...files].sort((a, b) => a.split("/").length - b.split("/").length || a.length - b.length)[0];
+  return [...files].sort(
+    (a, b) => a.split("/").length - b.split("/").length || a.length - b.length,
+  )[0];
 }
 
 function inlineHtml(html: string, base: string, blobs: Map<string, string>): string {
@@ -100,17 +164,29 @@ function classify(main: string): string {
   if (l.endsWith(".exe") || l.endsWith(".msi")) return "Windows-Programm";
   if (l.endsWith(".dmg")) return "macOS-Programm";
   if (l.endsWith(".jar")) return "Java-Programm";
+  if (l.endsWith(".php")) return "PHP-Webanwendung";
   if (l.endsWith(".deb")) return "Linux-Paket";
   if (l.endsWith(".py")) return "Python-Skript";
   if (l.endsWith(".js")) return "JavaScript-Skript";
   return "Programm";
 }
 
+function isJunk(path: string) {
+  const base = path.split("/").pop() ?? "";
+  return (
+    path.startsWith("__MACOSX/") ||
+    path.includes("/__MACOSX/") ||
+    base === ".DS_Store" ||
+    base.startsWith("._") ||
+    base === "Thumbs.db"
+  );
+}
+
 export async function runZip(file: File): Promise<RunResult> {
   const zip = await JSZip.loadAsync(file);
   const entries: { name: string; entry: JSZip.JSZipObject }[] = [];
   zip.forEach((path, entry) => {
-    if (!entry.dir) entries.push({ name: path, entry });
+    if (!entry.dir && !isJunk(path)) entries.push({ name: path, entry });
   });
   if (!entries.length) return { kind: "empty" };
 
@@ -120,8 +196,8 @@ export async function runZip(file: File): Promise<RunResult> {
   const mainEntry = entries.find((e) => e.name === main)!;
   const lower = main.toLowerCase();
 
-  // Render real HTML
-  if (lower.endsWith(".html") || lower.endsWith(".htm") || lower.endsWith(".php")) {
+  // Echtes HTML direkt rendern (PHP nicht — sonst wäre Quellcode sichtbar)
+  if (lower.endsWith(".html") || lower.endsWith(".htm")) {
     const blobs = new Map<string, string>();
     await Promise.all(
       entries.map(async (e) => {
@@ -133,7 +209,15 @@ export async function runZip(file: File): Promise<RunResult> {
     );
     let html = await mainEntry.entry.async("string");
     html = inlineHtml(html, main, blobs);
-    return { kind: "html", srcDoc: html, mainName: main };
+    return {
+      kind: "html",
+      srcDoc: html,
+      mainName: main,
+      revoke: () => {
+        for (const url of blobs.values()) URL.revokeObjectURL(url);
+        blobs.clear();
+      },
+    };
   }
 
   // For everything else (scripts, apk, exe, jar…): collect context for AI simulation
@@ -176,17 +260,16 @@ export async function runZip(file: File): Promise<RunResult> {
   };
 }
 
-export function offlineSimulation(
-  mainName: string,
-  fileKind: string,
-  fileList: string[],
-): string {
-  const filename = mainName.split("/").pop()!;
+export function offlineSimulation(mainName: string, fileKind: string, fileList: string[]): string {
+  const esc = (s: string) =>
+    s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+  const filename = esc(mainName.split("/").pop() ?? "app");
+  const kind = esc(fileKind);
   const fl = fileList
     .slice(0, 40)
-    .map((f) => `<li>${f.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]!))}</li>`)
+    .map((f) => `<li>${esc(f)}</li>`)
     .join("");
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${filename}</title>
+  return `<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${filename}</title>
 <style>
   body{margin:0;font-family:ui-sans-serif,system-ui;background:#0f172a;color:#e2e8f0;padding:32px;line-height:1.6}
   .card{max-width:680px;margin:0 auto;background:#1e293b;border:1px solid #334155;border-radius:16px;padding:32px}
@@ -199,7 +282,7 @@ export function offlineSimulation(
 </style></head><body>
 <div class="card">
   <h1>${filename}</h1>
-  <div class="kind">${fileKind}</div>
+  <div class="kind">${kind}</div>
   <h2>Inhalt der ZIP</h2>
   <ul>${fl}</ul>
   <div class="hint">Interaktive Vorschau gerade nicht verfügbar. Versuch es gleich nochmal.</div>
