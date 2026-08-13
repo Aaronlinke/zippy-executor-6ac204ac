@@ -187,11 +187,11 @@ function Index() {
             <div className="h-2 w-full overflow-hidden rounded-full bg-slate-800">
               <div
                 className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-cyan-300 transition-all duration-500 ease-out"
-                style={{ width: `${Math.max(5, Math.min(100, view.progress))}%` }}
+                style={{ width: `${Math.max(5, Math.min(99, shown))}%` }}
               />
             </div>
             <div className="mt-2 text-right text-xs tabular-nums text-slate-500">
-              {Math.round(view.progress)}%
+              {Math.round(Math.min(99, shown))}%
             </div>
           </div>
         )}
