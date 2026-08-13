@@ -55,6 +55,7 @@ Strenge Regeln:
 - Übersetze Python/Java/C/Kotlin portabel nach JavaScript + Web-APIs.
 - Bei APK/EXE/JAR ohne Quellcode: leite Zweck aus Manifest/README/Namen ab und baue eine voll funktionsfähige App.
 - KEIN Quellcode für Endnutzer sichtbar.
+- KEIN localStorage/sessionStorage/IndexedDB/Cookies — die App läuft in einer isolierten Sandbox. State nur im Speicher (JS-Variablen).
 - Dunkles Slate/Cyan-UI, responsive, ohne Erklärtexte.
 
 ${API_CATALOG}
