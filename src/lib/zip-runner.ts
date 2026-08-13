@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 
 export type RunResult =
-  | { kind: "html"; srcDoc: string; mainName: string }
+  | { kind: "html"; srcDoc: string; mainName: string; revoke: () => void }
   | {
       kind: "simulate";
       mainName: string;
