@@ -99,6 +99,7 @@ Checkliste — alles MUSS true sein in der Ausgabe:
 [ ] App startet in einem sinnvollen Initialzustand (Demo-Daten geladen wenn passend).
 [ ] Responsive bis 360px Breite.
 [ ] Keine externen Skripte/Styles, alles inline.
+[ ] Kein localStorage/sessionStorage/IndexedDB/Cookies (Sandbox) — State nur im Speicher.
 
 Liefere die FERTIGE 100%-Version.
 
