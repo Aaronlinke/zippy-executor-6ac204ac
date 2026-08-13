@@ -20,7 +20,24 @@ type View =
 function Index() {
   const [view, setView] = useState<View>({ kind: "idle" });
   const [drag, setDrag] = useState(false);
+  const [shown, setShown] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const target = view.kind === "loading" ? view.progress : 0;
+
+  // Fortschritt weich hochlaufen lassen, damit die Leiste bei langen
+  // KI-Stufen nicht minutenlang still steht.
+  useEffect(() => {
+    if (view.kind !== "loading") {
+      setShown(0);
+      return;
+    }
+    setShown((s) => Math.max(s, target));
+    const id = window.setInterval(() => {
+      setShown((s) => (s >= target + 12 ? s : Math.min(s + 0.4, target + 12)));
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [view.kind, target]);
 
   const handleFile = useCallback(async (file: File) => {
     setView({ kind: "loading", label: "Entpacken…", progress: 5 });
