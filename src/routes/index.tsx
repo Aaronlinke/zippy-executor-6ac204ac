@@ -22,6 +22,10 @@ function Index() {
   const [drag, setDrag] = useState(false);
   const [shown, setShown] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const revokeRef = useRef<(() => void) | null>(null);
+
+  // Blob-URLs der entpackten Dateien freigeben, wenn die Seite verlassen wird
+  useEffect(() => () => revokeRef.current?.(), []);
 
   const target = view.kind === "loading" ? view.progress : 0;
 
