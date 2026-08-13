@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
+import { streamText } from "ai";
+import {
+  createLovableResponsesProvider,
+  getLovableAiGatewayRunId,
+} from "@/lib/ai-gateway.server";
 
 type Body = {
   mainName?: string;
