@@ -222,7 +222,7 @@ export function offlineSimulation(
 </style></head><body>
 <div class="card">
   <h1>${filename}</h1>
-  <div class="kind">${fileKind}</div>
+  <div class="kind">${kind}</div>
   <h2>Inhalt der ZIP</h2>
   <ul>${fl}</ul>
   <div class="hint">Interaktive Vorschau gerade nicht verfügbar. Versuch es gleich nochmal.</div>
